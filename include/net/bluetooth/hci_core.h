@@ -406,6 +406,9 @@ struct hci_dev {
 #if IS_ENABLED(CONFIG_BT_LEDS)
 	struct led_trigger	*power_led;
 #endif
+    
+    void                *driver_data;
+    struct module       *owner;
 
 	int (*open)(struct hci_dev *hdev);
 	int (*close)(struct hci_dev *hdev);
