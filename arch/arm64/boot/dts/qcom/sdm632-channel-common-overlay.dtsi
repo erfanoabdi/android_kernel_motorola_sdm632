@@ -14,6 +14,7 @@
 #include "sdm632-moto-common-overlay.dtsi"
 #include "sdm632-channel-pinctrl-overlay.dtsi"
 #include "dsi-panel-mot-djn-569-hd-vid.dtsi"
+#include "dsi-panel-mot-djn-568-hd-vid.dtsi"
 #include "dsi-panel-mot-dsbj-569-hd-vid.dtsi"
 #include "dsi-panel-mot-dsbj-570-hd-vid.dtsi"
 #include "dsi-panel-mot-dummy-qhd-video.dtsi"
@@ -245,6 +246,8 @@
 	#include "batterydata-je40-scud-3000mah.dtsi"
         #include "batterydata-je40-atl-3000mah.dtsi"
         #include "batterydata-je40-atl-india-3000mah.dtsi"
+	#include "batterydata-je40-atl-unicoba-3000mah.dtsi"
+	#include "batterydata-je40-atl-flex-3000mah.dtsi"
 };
 
 &pmi632_qg {

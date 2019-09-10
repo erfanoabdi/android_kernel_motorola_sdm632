@@ -264,6 +264,8 @@ module_param(floated_charger_enable, bool, 0644);
 MODULE_PARM_DESC(floated_charger_enable,
 	"Whether to enable floated charger");
 
+static bool host_mode_disable;
+
 /* by default debugging is enabled */
 static unsigned int enable_dbg_log = 1;
 module_param(enable_dbg_log, uint, 0644);
@@ -1638,12 +1640,14 @@ phcd_retry:
 
 	atomic_set(&motg->in_lpm, 1);
 
-	/* Enable ASYNC IRQ during LPM */
-	enable_irq(motg->async_irq);
+	if (host_bus_suspend || device_bus_suspend) {
+		/* Enable ASYNC IRQ during LPM */
+		enable_irq(motg->async_irq);
+		enable_irq(motg->irq);
+	}
 	if (motg->phy_irq)
 		enable_irq(motg->phy_irq);
 
-	enable_irq(motg->irq);
 	pm_relax(&motg->pdev->dev);
 
 	dev_dbg(phy->dev, "LPM caps = %lu flags = %lu\n",
@@ -1688,10 +1692,12 @@ static int msm_otg_resume(struct msm_otg *motg)
 		return 0;
 	}
 
-	disable_irq(motg->irq);
+	pm_stay_awake(&motg->pdev->dev);
 	if (motg->phy_irq)
 		disable_irq(motg->phy_irq);
-	pm_stay_awake(&motg->pdev->dev);
+
+	if (motg->host_bus_suspend || motg->device_bus_suspend)
+		disable_irq(motg->irq);
 
 	/*
 	 * If we are resuming from the device bus suspend, restore
@@ -1814,7 +1820,8 @@ skip_phy_resume:
 	enable_irq(motg->irq);
 
 	/* Enable ASYNC_IRQ only during LPM */
-	disable_irq(motg->async_irq);
+	if (motg->host_bus_suspend || motg->device_bus_suspend)
+		disable_irq(motg->async_irq);
 
 	if (motg->phy_irq_pending) {
 		motg->phy_irq_pending = false;
@@ -2686,7 +2693,9 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 			else
 				clear_bit(B_SESS_VLD, &motg->inputs);
 		} else if (pdata->otg_control == OTG_PMIC_CONTROL) {
-			if (pdata->pmic_id_irq) {
+			if (host_mode_disable)
+				set_bit(ID, &motg->inputs);
+			else if (pdata->pmic_id_irq) {
 				if (msm_otg_read_pmic_id_state(motg))
 					set_bit(ID, &motg->inputs);
 				else
@@ -3007,6 +3016,68 @@ static void msm_otg_set_vbus_state(int online)
 		msm_otg_kick_sm_work(motg);
 }
 
+static int msm_otg_enable_ext_id(struct msm_otg *motg, int enable)
+{
+	struct pinctrl_state *set_state;
+
+	if (!motg->ext_id_irq)
+		return -ENODEV;
+
+	if (enable) {
+		set_state = pinctrl_lookup_state(motg->phy_pinctrl,
+							"default");
+		if (IS_ERR(set_state)) {
+			pr_err("cannot enable usbid pin\n");
+			return -EFAULT;
+		}
+
+		pinctrl_select_state(motg->phy_pinctrl, set_state);
+
+		enable_irq(motg->ext_id_irq);
+	} else {
+		disable_irq(motg->ext_id_irq);
+
+		set_state = pinctrl_lookup_state(motg->phy_pinctrl,
+							"usbid-off");
+		if (IS_ERR(set_state)) {
+			pr_err("cannot disable usbid pin\n");
+			return -EFAULT;
+		}
+
+		pinctrl_select_state(motg->phy_pinctrl, set_state);
+	}
+
+	return 0;
+}
+
+static int set_host_mode_disable(const char *val, const struct kernel_param *kp)
+{
+	int rv = param_set_bool(val, kp);
+	struct msm_otg *motg = the_msm_otg;
+
+	if (rv)
+		return rv;
+
+	if (!motg || !motg->ext_id_irq)
+		return 0;
+
+	if (host_mode_disable)
+		msm_otg_enable_ext_id(motg, 0);
+	else
+		msm_otg_enable_ext_id(motg, 1);
+
+	return 0;
+}
+
+static struct kernel_param_ops host_mode_disable_param_ops = {
+	.set = set_host_mode_disable,
+	.get = param_get_bool,
+};
+
+module_param_cb(host_mode_disable, &host_mode_disable_param_ops,
+			&host_mode_disable, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(host_mode_disable, "Whether to disable Host Mode");
+
 static void msm_id_status_w(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg,
@@ -3014,6 +3085,11 @@ static void msm_id_status_w(struct work_struct *w)
 	int work = 0;
 
 	dev_dbg(motg->phy.dev, "ID status_w\n");
+
+	if (host_mode_disable) {
+		dev_dbg(motg->phy.dev, "Ignore ID - host mode is disabled\n");
+		return;
+	}
 
 	if (motg->pdata->pmic_id_irq)
 		motg->id_state = msm_otg_read_pmic_id_state(motg);
@@ -3768,6 +3844,22 @@ static int msm_otg_psy_changed(struct notifier_block *nb, unsigned long evt,
 	return 0;
 }
 
+static ssize_t id_state_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct msm_otg *motg = the_msm_otg;
+	int id = 0;
+
+	if (motg->pdata->pmic_id_irq)
+		id = msm_otg_read_pmic_id_state(motg);
+	else if (motg->ext_id_irq)
+		id = gpio_get_value(motg->pdata->usb_id_gpio);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", !!id);
+}
+
+static DEVICE_ATTR(id_state, S_IRUGO, id_state_show, NULL);
+
 struct msm_otg_platform_data *msm_otg_dt_to_pdata(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
@@ -4318,7 +4410,7 @@ static int msm_otg_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&motg->sdp_check, check_for_sdp_connection);
 	INIT_WORK(&motg->notify_charger_work, msm_otg_notify_charger_work);
 	INIT_WORK(&motg->extcon_register_work, msm_otg_extcon_register_work);
-	motg->otg_wq = alloc_ordered_workqueue("k_otg", 0);
+	motg->otg_wq = alloc_ordered_workqueue("k_otg", WQ_FREEZABLE);
 	if (!motg->otg_wq) {
 		pr_err("%s: Unable to create workqueue otg_wq\n",
 			__func__);
@@ -4492,6 +4584,7 @@ static int msm_otg_probe(struct platform_device *pdev)
 	motg->caps |= ALLOW_HOST_PHY_RETENTION;
 
 	device_create_file(&pdev->dev, &dev_attr_dpdm_pulldown_enable);
+	device_create_file(&pdev->dev, &dev_attr_id_state);
 
 	if (motg->pdata->enable_lpm_on_dev_suspend)
 		motg->caps |= ALLOW_LPM_ON_DEV_SUSPEND;
@@ -4673,6 +4766,8 @@ static int msm_otg_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 
 	usb_remove_phy(phy);
+
+	device_remove_file(&pdev->dev, &dev_attr_id_state);
 
 	device_remove_file(&pdev->dev, &dev_attr_dpdm_pulldown_enable);
 

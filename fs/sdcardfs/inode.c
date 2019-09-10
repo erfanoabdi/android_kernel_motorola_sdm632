@@ -86,10 +86,11 @@ static int sdcardfs_create(struct inode *dir, struct dentry *dentry,
 	dput(parent_dentry);
 
 	/* save current_cred and override it */
-        saved_cred = override_fsids(SDCARDFS_SB(dir->i_sb),
-                                               SDCARDFS_I(dir)->data);
-        if (!saved_cred)
-              return -ENOMEM;
+	saved_cred = override_fsids(SDCARDFS_SB(dir->i_sb),
+					SDCARDFS_I(dir)->data);
+	if (!saved_cred)
+		return -ENOMEM;
+
 	sdcardfs_get_lower_path(dentry, &lower_path);
 	lower_dentry = lower_path.dentry;
 	lower_dentry_mnt = lower_path.mnt;
@@ -152,7 +153,7 @@ static int sdcardfs_unlink(struct inode *dir, struct dentry *dentry)
 
 	/* save current_cred and override it */
 	saved_cred = override_fsids(SDCARDFS_SB(dir->i_sb),
-					SDCARDFS_I(dir)->data);
+						SDCARDFS_I(dir)->data);
 	if (!saved_cred)
 		return -ENOMEM;
 
@@ -342,10 +343,11 @@ static int sdcardfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode
 		sdcardfs_update_xattr_dirwriter(lower_dentry, writer_uid);
 #endif
 out:
-        task_lock(current);
+	task_lock(current);
 	current->fs = saved_fs;
 	task_unlock(current);
-        free_fs_struct(copied_fs);
+
+	free_fs_struct(copied_fs);
 out_unlock:
 	sdcardfs_put_lower_path(dentry, &lower_path);
 out_revert:

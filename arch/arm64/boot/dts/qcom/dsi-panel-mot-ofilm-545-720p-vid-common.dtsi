@@ -1,0 +1,157 @@
+/* Copyright (c) 2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+compatible = "qcom,mdss-dsi-panel";
+qcom,mdss-dsi-panel-name = "mipi_mot_vid_ofilm_720p_545";
+qcom,mdss-dsi-panel-supplier = "ofilm";
+qcom,mdss-dsi-panel-controller = <&mdss_dsi0>;
+qcom,mdss-dsi-panel-type = "dsi_video_mode";
+qcom,mdss-dsi-panel-destination = "display_1";
+qcom,mdss-dsi-panel-framerate = <60>;
+qcom,mdss-dsi-virtual-channel-id = <0>;
+qcom,mdss-dsi-stream = <0>;
+qcom,mdss-dsi-panel-width = <720>;
+qcom,mdss-dsi-panel-height = <1440>;
+qcom,mdss-pan-physical-width-dimension = <62>;
+qcom,mdss-pan-physical-height-dimension = <124>;
+qcom,mdss-dsi-h-front-porch = <32>;
+qcom,mdss-dsi-h-back-porch = <32>;
+qcom,mdss-dsi-h-pulse-width = <12>;
+qcom,mdss-dsi-h-sync-skew = <0>;
+qcom,mdss-dsi-v-front-porch = <14>;
+qcom,mdss-dsi-v-back-porch = <9>;
+qcom,mdss-dsi-v-pulse-width = <1>;
+qcom,mdss-dsi-h-left-border = <0>;
+qcom,mdss-dsi-h-right-border = <0>;
+qcom,mdss-dsi-v-top-border = <0>;
+qcom,mdss-dsi-v-bottom-border = <0>;
+qcom,mdss-dsi-bpp = <24>;
+qcom,mdss-dsi-underflow-color = <0xff>;
+qcom,mdss-dsi-border-color = <0>;
+qcom,mdss-dsi-on-command = [
+	05 01 00 00 96 00 02 11 00
+	39 01 00 00 00 00 04 B9 FF 83 94
+	39 01 00 00 00 00 07 BA 63 03 68 7B B2 C0
+	39 01 00 00 00 00 0B B1 48 12 72 09 32 54 71 51 57 43
+	39 01 00 00 00 00 07 B2 00 80 78 0C 0D 22
+	39 01 00 00 00 00 16 B4 69 6A 69 6A 69 6A 01 0C 7C 55 00 3F 69 6A 69 6A 69 6A 01 0C 7C
+	39 01 00 00 00 00 22 D3 00 00 07 07 40 07 0C 00 08 10 08 00 08 54 15 AA 05 AA 02 15 06 05 06 47 44 0A 0A 4B 10 07 07 0C 40
+	39 01 00 00 00 00 2D D5 20 18 18 21 26 18 24 27 1C 25 1D 1C 00 1D 02 01 04 03 18 18 06 05 18 18 08 07 18 18 18 18 18 18 18 18 18 09 18 18 0A 0B 18 18 18 18
+	39 01 00 00 00 00 2D D6 25 18 18 24 27 18 21 26 1C 20 1D 1C 0B 1D 09 0A 07 08 18 18 05 06 18 18 03 04 18 18 18 18 18 18 18 18 18 02 18 18 01 00 18 18 18 18
+	39 01 00 00 00 00 3B E0 00 05 0D 13 16 1A 1D 1B 39 49 5C 5A 64 76 7C 80 8D 8D 87 93 99 4E 4D 51 56 59 60 69 7F 00 05 0D 13 16 1A 1D 1B 39 49 5C 5A 64 75 7B 7F 8B 8D 89 99 B2 54 53 56 59 5C 62 6B 7F
+	39 01 00 00 00 00 02 CC 0B
+	39 01 00 00 00 00 03 C0 1F 31
+	39 01 00 00 00 00 02 D4 02
+	39 01 00 00 00 00 02 BD 02
+	39 01 00 00 00 00 0D D8 FF FF FF FF FF FF FF FF FF FF FF FF
+	39 01 00 00 00 00 02 BD 00
+	39 01 00 00 00 00 02 BD 01
+	39 01 00 00 00 00 02 B1 00
+	39 01 00 00 00 00 02 BD 00
+	39 01 00 00 00 00 02 C6 ED
+	39 01 00 00 00 00 02 D2 55
+	39 01 00 00 00 00 06 C9 13 00 10 1E B1
+	15 01 00 00 00 00 02 51 D0
+	15 01 00 00 05 00 02 55 11
+	15 01 00 00 00 00 02 53 24
+	05 01 00 00 14 00 02 29 00
+	];
+qcom,mdss-dsi-off-command = [
+	05 01 00 00 32 00 02 28 00
+	05 01 00 00 78 00 02 10 00
+];
+
+
+qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
+qcom,mdss-dsi-off-command-state = "dsi_hs_mode";
+
+qcom,mdss-dsi-cabc-ui-command = [15 01 00 00 00 00 02 55 01];
+qcom,mdss-dsi-cabc-ui-command-state = "dsi_hs_mode";
+qcom,mdss-dsi-cabc-mv-command = [15 01 00 00 00 00 02 55 03];
+qcom,mdss-dsi-cabc-mv-command-state = "dsi_hs_mode";
+qcom,mdss-dsi-cabc-dis-command = [15 01 00 00 00 00 02 55 00];
+qcom,mdss-dsi-cabc-dis-command-state = "dsi_hs_mode";
+qcom,mdss-dsi-hbm-on-command = [39 01 00 00 00 00 02 51 FF];
+qcom,mdss-dsi-hbm-on-command-state = "dsi_hs_mode";
+qcom,mdss-dsi-hbm-off-command = [39 01 00 00 00 00 02 51 D0];
+qcom,mdss-dsi-hbm-off-command-state = "dsi_hs_mode";
+qcom,mdss-dsi-hbm-type = "lcd-dcs-wled";
+
+qcom,mdss-dsi-h-sync-pulse = <1>;
+qcom,mdss-dsi-traffic-mode = "burst_mode";
+qcom,mdss-dsi-lane-map = "lane_map_0123";
+qcom,mdss-dsi-bllp-eof-power-mode;
+qcom,mdss-dsi-bllp-power-mode;
+//qcom,mdss-dsi-hfp-power-mode;
+//qcom,mdss-dsi-lp11-init;
+qcom,mdss-dsi-lane-0-state;
+qcom,mdss-dsi-lane-1-state;
+qcom,mdss-dsi-lane-2-state;
+qcom,mdss-dsi-lane-3-state;
+qcom,mdss-dsi-panel-timings = [
+	7b 1a 10 00 3e 40 16 1e 15 03 04 00
+];
+qcom,mdss-dsi-t-clk-post = <0x4>;
+qcom,mdss-dsi-t-clk-pre = <0x1a>;
+qcom,mdss-dsi-bl-min-level = <1>;
+qcom,mdss-dsi-bl-max-level = <4095>;
+qcom,mdss-dsi-dma-trigger = "trigger_sw";
+qcom,mdss-dsi-mdp-trigger = "none";
+qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
+qcom,mdss-dsi-reset-sequence = <1 20>, <0 2>, <1 50>;
+qcom,mdss-dsi-tx-eot-append;
+qcom,mdss-dsi-init-delay-us = <50000>;
+qcom,mdss-dsi-no-panel-on-read-support;
+qcom,cont-splash-enabled;
+qcom,esd-check-enabled;
+qcom,mdss-dsi-panel-status-command = [
+	06 01 00 01 05 00 01 D9
+	06 01 00 01 05 00 01 09];
+qcom,mdss-dsi-panel-status-command-state = "dsi_lp_mode";
+qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+qcom,mdss-dsi-panel-status-read-length = <4 4>;
+qcom,mdss-dsi-panel-status-valid-params = <1 1>;
+qcom,mdss-dsi-panel-status-value =
+	<0x80 0x80>,
+	<0x80 0x80>;
+qcom,mdss-dsi-panel-max-error-count = <3>;
+qcom,mdss-dsi-panel-status-command-mode = "dsi_lp_mode";
+
+qcom,panel-supply-entries {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	qcom,panel-supply-entry@0 {
+		reg = <1>;
+		qcom,supply-name = "vddio_disp";
+		qcom,supply-min-voltage = <1800000>;
+		qcom,supply-max-voltage = <1800000>;
+		qcom,supply-enable-load = <100000>;
+		qcom,supply-disable-load = <100>;
+	};
+	qcom,panel-supply-entry@1 {
+		reg = <2>;
+		qcom,supply-name = "vsp_disp";
+		qcom,supply-min-voltage = <6000000>;
+		qcom,supply-max-voltage = <6000000>;
+		qcom,supply-enable-load = <100000>;
+		qcom,supply-disable-load = <100>;
+	};
+	qcom,panel-supply-entry@2 {
+		reg = <3>;
+		qcom,supply-name = "vsn_disp";
+		qcom,supply-min-voltage = <6000000>;
+		qcom,supply-max-voltage = <6000000>;
+		qcom,supply-enable-load = <100000>;
+		qcom,supply-disable-load = <100>;
+		qcom,supply-post-on-sleep = <10>;
+	};
+};

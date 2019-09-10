@@ -275,7 +275,7 @@ static int mmc_scale_set(void *data, u64 val)
 	mmc_host_clk_hold(host);
 
 	/* change frequency from sysfs manually */
-	err = mmc_clk_update_freq(host, val, host->clk_scaling.state);
+	err = mmc_clk_update_freq(host, val, host->clk_scaling.state, 0);
 	if (err == -EAGAIN)
 		err = 0;
 	else if (err)
@@ -425,7 +425,7 @@ static int mmc_err_stats_show(struct seq_file *file, void *data)
 		   host->err_stats[MMC_ERR_DAT_CRC]);
 
 	seq_printf(file, "# Auto-Cmd Error Occurred:\t %d\n",
-		   host->err_stats[MMC_ERR_ADMA]);
+		   host->err_stats[MMC_ERR_AUTO_CMD]);
 
 	seq_printf(file, "# ADMA Error Occurred:\t %d\n",
 		   host->err_stats[MMC_ERR_ADMA]);
@@ -575,7 +575,7 @@ static int mmc_dbg_card_status_get(void *data, u64 *val)
 
 	mmc_get_card(card);
 	if (mmc_card_cmdq(card)) {
-		ret = mmc_cmdq_halt_on_empty_queue(card->host);
+		ret = mmc_cmdq_halt_on_empty_queue(card->host, 0);
 		if (ret) {
 			pr_err("%s: halt failed while doing %s err (%d)\n",
 					mmc_hostname(card->host), __func__,
@@ -617,7 +617,7 @@ static int mmc_ext_csd_open(struct inode *inode, struct file *filp)
 
 	mmc_get_card(card);
 	if (mmc_card_cmdq(card)) {
-		err = mmc_cmdq_halt_on_empty_queue(card->host);
+		err = mmc_cmdq_halt_on_empty_queue(card->host, 0);
 		if (err) {
 			pr_err("%s: halt failed while doing %s err (%d)\n",
 					mmc_hostname(card->host), __func__,
