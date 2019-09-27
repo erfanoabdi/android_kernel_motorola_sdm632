@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -913,6 +913,15 @@ typedef struct sSirSmeScanReq
 
     /* Number of SSIDs to scan */
     tANI_U8             numSsid;
+
+    /*
+     * @nl_scan is set to true if scan request is from cfg80211 sub-system and
+     * known as NL scan.
+     *
+     * @scan_randomize is set to true if NL scan requires randomization.
+     */
+    bool                 nl_scan;
+    bool                 scan_randomize;
     
     //channelList has to be the last member of this structure. Check tSirChannelList for the reason.
     /* This MUST be the last field of the structure */
@@ -4312,14 +4321,6 @@ typedef struct sSirRcvPktFilterCfg
   tSirRcvPktFilterFieldParams     paramsData[SIR_MAX_NUM_TESTS_PER_FILTER];
 }tSirRcvPktFilterCfgType, *tpSirRcvPktFilterCfgType;
 
-// IKJB42MAIN-1244, Motorola, a19091 - BEGIN
-typedef struct sSirInvokeV6Filter
-{
-    int (*configureFilterFn)(void *pAdapter, v_U8_t set, v_U8_t userSet);
-    void *pHddAdapter;
-    v_U8_t set;
-}tSirInvokeV6Filter;
-// IKJB42MAIN-1244, Motorola, a19091 - END
 //
 // Filter Packet Match Count Parameters
 //
@@ -4349,6 +4350,8 @@ typedef struct sSirRcvFltPktClearParam
   tANI_U8    filterId;
   tSirMacAddr selfMacAddr;
   tSirMacAddr bssId;
+  pktFilterReqCb     pktFilterCallback;
+  void        *cbCtx;
 }tSirRcvFltPktClearParam, *tpSirRcvFltPktClearParam;
 
 //
@@ -5932,6 +5935,7 @@ typedef struct
     tANI_U16       messageType;
     tANI_U16       length;
     tSirMacAddr    macAddr;
+    bool           spoof_mac_oui;
 } tSirSpoofMacAddrReq, *tpSirSpoofMacAddrReq;
 
 typedef struct
@@ -6431,6 +6435,18 @@ struct ecsa_frame_params {
     uint8_t      op_class;
     uint8_t   new_channel;
     uint8_t  switch_count;
+};
+
+typedef void (*sir_feature_caps_cb)(void *user_data);
+
+/**
+ * struct sir_feature_caps_params - Feature capability request
+ * @feature_caps_cb: HDD callback to be invoked from WDA
+ * @user_data: associated user-data with feature_caps_cb callback
+ */
+struct sir_feature_caps_params {
+	sir_feature_caps_cb feature_caps_cb;
+	void *user_data;
 };
 
 #endif /* __SIR_API_H */

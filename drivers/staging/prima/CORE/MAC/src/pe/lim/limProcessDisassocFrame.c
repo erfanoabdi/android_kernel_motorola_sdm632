@@ -203,6 +203,14 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         }
     }
 
+    if ((psessionEntry->limSystemRole == eLIM_STA_ROLE) &&
+         psessionEntry->limMlmState == eLIM_MLM_WT_ADD_STA_RSP_STATE) {
+        PELOGE(limLog(pMac, LOGE, FL("received Disassoc from the AP in"
+                      "add sta response state, disconnecting"));)
+        psessionEntry->fDeauthReceived = true;
+        return;
+      }
+
     if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
          (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
     {
@@ -235,10 +243,6 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
                 (psessionEntry->limSmeState != eLIM_SME_WT_ASSOC_STATE)  &&
                 (psessionEntry->limSmeState != eLIM_SME_WT_REASSOC_STATE) ))
     {
-        PELOGE(limLog(pMac, LOGE,
-               FL("received Disassoc with reason code= %d disassoc frame rssi = "
-                "%d from "MAC_ADDRESS_STR), reasonCode,
-                (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo)),MAC_ADDR_ARRAY(pHdr->sa));)
         switch (reasonCode)
         {
             case eSIR_MAC_UNSPEC_FAILURE_REASON:
