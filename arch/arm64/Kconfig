@@ -865,6 +865,15 @@ config PSCI_BP_HARDENING
 
 	  If unsure, say N.
 
+config ARM64_SSBD
+	bool "Speculative Store Bypass Disable" if EXPERT
+	default y
+	help
+	  This enables mitigation of the bypassing of previous stores
+	  by speculative loads.
+
+	  If unsure, say Y.
+
 menuconfig ARMV8_DEPRECATED
 	bool "Emulate deprecated/obsolete ARMv8 instructions"
 	depends on COMPAT
@@ -1278,6 +1287,10 @@ config SYSVIPC_COMPAT
 	def_bool y
 	depends on COMPAT && SYSVIPC
 
+config KEYS_COMPAT
+	def_bool y
+	depends on COMPAT && KEYS
+
 config COMPAT_VDSO
 	bool "32-bit vDSO"
 	depends on COMPAT
@@ -1296,12 +1309,6 @@ config COMPAT_VDSO
 	  by the vDSO from the 32-bit kernel, so that a 32-bit libc can use
 	  the compat vDSO without modification. It also provides sigreturn
 	  trampolines, replacing the sigreturn page.
-
-config CROSS_COMPILE_ARM32
-	string "32-bit toolchain prefix"
-	help
-	  Same as setting CROSS_COMPILE_ARM32 in the environment, but saved for
-	  future builds. The environment variable overrides this config option.
 
 endmenu
 

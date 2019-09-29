@@ -185,7 +185,6 @@ int qti_pfk_ice_set_key(uint32_t index, uint8_t *key, uint8_t *salt,
 	qti_pfk_ice_stat_failure(s_type, smc_id, ret);
 	if (ret) {
 		pr_err("%s: Set Key Error: %d\n", __func__, ret);
-		qti_pfk_ice_stat_failure(s_type, smc_id, ret);
 		if (ret == -EBUSY) {
 			if (qcom_ice_setup_ice_hw((const char *)s_type, false))
 				pr_err("%s: clock disable failed\n", __func__);
@@ -249,7 +248,6 @@ int qti_pfk_ice_invalidate_key(uint32_t index, char *storage_type)
 	qti_pfk_ice_stat_failure(storage_type, smc_id, ret);
 	if (ret) {
 		pr_err("%s: Error: 0x%x\n", __func__, ret);
-		qti_pfk_ice_stat_failure(storage_type, smc_id, ret);
 		if (qcom_ice_setup_ice_hw((const char *)storage_type, false))
 			pr_err("%s: could not disable clocks\n", __func__);
 	} else {

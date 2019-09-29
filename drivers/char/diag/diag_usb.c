@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2016, 2018 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2016, 2018-2019 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -300,8 +300,7 @@ static void usb_read_done_work_fn(struct work_struct *work)
 }
 
 static void diag_usb_write_done(struct diag_usb_info *ch,
-				struct diag_request *req,
-				int sync)
+				struct diag_request *req)
 {
 	int ctxt = 0;
 	int len = 0;
@@ -312,27 +311,21 @@ static void diag_usb_write_done(struct diag_usb_info *ch,
 	if (!ch || !req)
 		return;
 
-	if (!sync)
-		spin_lock_irqsave(&ch->write_lock, flags);
-
+	spin_lock_irqsave(&ch->write_lock, flags);
 	ch->write_cnt++;
 	entry = diag_usb_buf_tbl_get(ch, req->context);
 	if (!entry) {
 		pr_err_ratelimited("diag: In %s, unable to find entry %pK in the table\n",
 				   __func__, req->context);
-		if (!sync)
-			spin_unlock_irqrestore(&ch->write_lock, flags);
-
+		spin_unlock_irqrestore(&ch->write_lock, flags);
 		return;
 	}
 	if (atomic_read(&entry->ref_count) != 0) {
 		DIAG_LOG(DIAG_DEBUG_MUX, "partial write_done ref %d\n",
 			 atomic_read(&entry->ref_count));
 		diag_ws_on_copy_complete(DIAG_WS_MUX);
-		if (!sync)
-			spin_unlock_irqrestore(&ch->write_lock, flags);
-
 		diagmem_free(driver, req, ch->mempool);
+		spin_unlock_irqrestore(&ch->write_lock, flags);
 		return;
 	}
 	DIAG_LOG(DIAG_DEBUG_MUX, "full write_done, ctxt: %d\n",
@@ -350,10 +343,8 @@ static void diag_usb_write_done(struct diag_usb_info *ch,
 	buf = NULL;
 	len = 0;
 	ctxt = 0;
-	if (!sync)
-		spin_unlock_irqrestore(&ch->write_lock, flags);
-
 	diagmem_free(driver, req, ch->mempool);
+	spin_unlock_irqrestore(&ch->write_lock, flags);
 }
 
 static void diag_usb_notifier(void *priv, unsigned int event,
@@ -391,10 +382,7 @@ static void diag_usb_notifier(void *priv, unsigned int event,
 			   &usb_info->read_done_work);
 		break;
 	case USB_DIAG_WRITE_DONE:
-		diag_usb_write_done(usb_info, d_req, 0);
-		break;
-	case USB_DIAG_WRITE_DONE_SYNC:
-		diag_usb_write_done(usb_info, d_req, 1);
+		diag_usb_write_done(usb_info, d_req);
 		break;
 	default:
 		pr_err_ratelimited("diag: Unknown event from USB diag\n");
