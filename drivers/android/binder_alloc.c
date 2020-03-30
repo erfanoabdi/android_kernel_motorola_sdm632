@@ -67,8 +67,9 @@ static size_t binder_alloc_buffer_size(struct binder_alloc *alloc,
 				       struct binder_buffer *buffer)
 {
 	if (list_is_last(&buffer->entry, &alloc->buffers))
-		return alloc->buffer + alloc->buffer_size - buffer->user_data;
-	return binder_buffer_next(buffer)->user_data - buffer->user_data;
+		return (u8 *)alloc->buffer +
+			alloc->buffer_size - (u8 *)buffer->data;
+	return (u8 *)binder_buffer_next(buffer)->data - (u8 *)buffer->data;
 }
 
 static void binder_insert_free_buffer(struct binder_alloc *alloc,
@@ -118,9 +119,9 @@ static void binder_insert_allocated_buffer_locked(
 		buffer = rb_entry(parent, struct binder_buffer, rb_node);
 		BUG_ON(buffer->free);
 
-		if (new_buffer->user_data < buffer->user_data)
+		if (new_buffer->data < buffer->data)
 			p = &parent->rb_left;
-		else if (new_buffer->user_data > buffer->user_data)
+		else if (new_buffer->data > buffer->data)
 			p = &parent->rb_right;
 		else
 			BUG();
@@ -135,17 +136,17 @@ static struct binder_buffer *binder_alloc_prepare_to_free_locked(
 {
 	struct rb_node *n = alloc->allocated_buffers.rb_node;
 	struct binder_buffer *buffer;
-	void __user *uptr;
+	void *uptr;
 
-	uptr = (void __user *)user_ptr;
+	uptr = (void *)user_ptr;
 
 	while (n) {
 		buffer = rb_entry(n, struct binder_buffer, rb_node);
 		BUG_ON(buffer->free);
 
-		if (uptr < buffer->user_data)
+		if (uptr < buffer->data)
 			n = n->rb_left;
-		else if (uptr > buffer->user_data)
+		else if (uptr > buffer->data)
 			n = n->rb_right;
 		else {
 			/*
@@ -185,9 +186,9 @@ struct binder_buffer *binder_alloc_prepare_to_free(struct binder_alloc *alloc,
 }
 
 static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
-				    void __user *start, void __user *end)
+				    void *start, void *end)
 {
-	void __user *page_addr;
+	void *page_addr;
 	unsigned long user_page_addr;
 	struct binder_lru_page *page;
 	struct vm_area_struct *vma = NULL;
@@ -324,8 +325,8 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 	struct binder_buffer *buffer;
 	size_t buffer_size;
 	struct rb_node *best_fit = NULL;
-	void __user *has_page_addr;
-	void __user *end_page_addr;
+	void *has_page_addr;
+	void *end_page_addr;
 	size_t size, data_offsets_size;
 	int ret;
 
@@ -419,15 +420,15 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 		     "%d: binder_alloc_buf size %zd got buffer %pK size %zd\n",
 		      alloc->pid, size, buffer, buffer_size);
 
-	has_page_addr = (void __user *)
-		(((uintptr_t)buffer->user_data + buffer_size) & PAGE_MASK);
+	has_page_addr =
+		(void *)(((uintptr_t)buffer->data + buffer_size) & PAGE_MASK);
 	WARN_ON(n && buffer_size != size);
 	end_page_addr =
-		(void __user *)PAGE_ALIGN((uintptr_t)buffer->user_data + size);
+		(void *)PAGE_ALIGN((uintptr_t)buffer->data + size);
 	if (end_page_addr > has_page_addr)
 		end_page_addr = has_page_addr;
-	ret = binder_update_page_range(alloc, 1, (void __user *)
-		PAGE_ALIGN((uintptr_t)buffer->user_data), end_page_addr);
+	ret = binder_update_page_range(alloc, 1,
+	    (void *)PAGE_ALIGN((uintptr_t)buffer->data), end_page_addr);
 	if (ret)
 		return ERR_PTR(ret);
 
@@ -440,7 +441,7 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 			       __func__, alloc->pid);
 			goto err_alloc_buf_struct_failed;
 		}
-		new_buffer->user_data = (u8 __user *)buffer->user_data + size;
+		new_buffer->data = (u8 *)buffer->data + size;
 		list_add(&new_buffer->entry, &buffer->entry);
 		new_buffer->free = 1;
 		binder_insert_free_buffer(alloc, new_buffer);
@@ -466,8 +467,8 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 	return buffer;
 
 err_alloc_buf_struct_failed:
-	binder_update_page_range(alloc, 0, (void __user *)
-				 PAGE_ALIGN((uintptr_t)buffer->user_data),
+	binder_update_page_range(alloc, 0,
+				 (void *)PAGE_ALIGN((uintptr_t)buffer->data),
 				 end_page_addr);
 	return ERR_PTR(-ENOMEM);
 }
@@ -502,15 +503,14 @@ struct binder_buffer *binder_alloc_new_buf(struct binder_alloc *alloc,
 	return buffer;
 }
 
-static void __user *buffer_start_page(struct binder_buffer *buffer)
+static void *buffer_start_page(struct binder_buffer *buffer)
 {
-	return (void __user *)((uintptr_t)buffer->user_data & PAGE_MASK);
+	return (void *)((uintptr_t)buffer->data & PAGE_MASK);
 }
 
-static void __user *prev_buffer_end_page(struct binder_buffer *buffer)
+static void *prev_buffer_end_page(struct binder_buffer *buffer)
 {
-	return (void __user *)
-		(((uintptr_t)(buffer->user_data) - 1) & PAGE_MASK);
+	return (void *)(((uintptr_t)(buffer->data) - 1) & PAGE_MASK);
 }
 
 static void binder_delete_free_buffer(struct binder_alloc *alloc,
@@ -525,8 +525,7 @@ static void binder_delete_free_buffer(struct binder_alloc *alloc,
 		to_free = false;
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
 				   "%d: merge free, buffer %pK share page with %pK\n",
-				   alloc->pid, buffer->user_data,
-				   prev->user_data);
+				   alloc->pid, buffer->data, prev->data);
 	}
 
 	if (!list_is_last(&buffer->entry, &alloc->buffers)) {
@@ -536,24 +535,23 @@ static void binder_delete_free_buffer(struct binder_alloc *alloc,
 			binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
 					   "%d: merge free, buffer %pK share page with %pK\n",
 					   alloc->pid,
-					   buffer->user_data,
-					   next->user_data);
+					   buffer->data,
+					   next->data);
 		}
 	}
 
-	if (PAGE_ALIGNED(buffer->user_data)) {
+	if (PAGE_ALIGNED(buffer->data)) {
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
 				   "%d: merge free, buffer start %pK is page aligned\n",
-				   alloc->pid, buffer->user_data);
+				   alloc->pid, buffer->data);
 		to_free = false;
 	}
 
 	if (to_free) {
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
 				   "%d: merge free, buffer %pK do not share page with %pK or %pK\n",
-				   alloc->pid, buffer->user_data,
-				   prev->user_data,
-				   next ? next->user_data : NULL);
+				   alloc->pid, buffer->data,
+				   prev->data, next ? next->data : NULL);
 		binder_update_page_range(alloc, 0, buffer_start_page(buffer),
 					 buffer_start_page(buffer) + PAGE_SIZE);
 	}
@@ -579,8 +577,8 @@ static void binder_free_buf_locked(struct binder_alloc *alloc,
 	BUG_ON(buffer->free);
 	BUG_ON(size > buffer_size);
 	BUG_ON(buffer->transaction != NULL);
-	BUG_ON(buffer->user_data < alloc->buffer);
-	BUG_ON(buffer->user_data > alloc->buffer + alloc->buffer_size);
+	BUG_ON(buffer->data < alloc->buffer);
+	BUG_ON(buffer->data > alloc->buffer + alloc->buffer_size);
 
 	if (buffer->async_transaction) {
 		alloc->free_async_space += size + sizeof(struct binder_buffer);
@@ -591,9 +589,8 @@ static void binder_free_buf_locked(struct binder_alloc *alloc,
 	}
 
 	binder_update_page_range(alloc, 0,
-		(void __user *)PAGE_ALIGN((uintptr_t)buffer->user_data),
-		(void __user *)(((uintptr_t)
-			  buffer->user_data + buffer_size) & PAGE_MASK));
+		(void *)PAGE_ALIGN((uintptr_t)buffer->data),
+		(void *)(((uintptr_t)buffer->data + buffer_size) & PAGE_MASK));
 
 	rb_erase(&buffer->rb_node, &alloc->allocated_buffers);
 	buffer->free = 1;
@@ -659,7 +656,7 @@ int binder_alloc_mmap_handler(struct binder_alloc *alloc,
 		goto err_already_mapped;
 	}
 
-	alloc->buffer = (void __user *)vma->vm_start;
+	alloc->buffer = (void *)vma->vm_start;
 	mutex_unlock(&binder_alloc_mmap_lock);
 
 	alloc->pages = kzalloc(sizeof(alloc->pages[0]) *
@@ -679,7 +676,7 @@ int binder_alloc_mmap_handler(struct binder_alloc *alloc,
 		goto err_alloc_buf_struct_failed;
 	}
 
-	buffer->user_data = alloc->buffer;
+	buffer->data = alloc->buffer;
 	list_add(&buffer->entry, &alloc->buffers);
 	buffer->free = 1;
 	binder_insert_free_buffer(alloc, buffer);
@@ -741,7 +738,7 @@ void binder_alloc_deferred_release(struct binder_alloc *alloc)
 		int i;
 
 		for (i = 0; i < alloc->buffer_size / PAGE_SIZE; i++) {
-			void __user *page_addr;
+			void *page_addr;
 			bool on_lru;
 
 			if (!alloc->pages[i].page_ptr)
@@ -772,7 +769,7 @@ static void print_binder_buffer(struct seq_file *m, const char *prefix,
 				struct binder_buffer *buffer)
 {
 	seq_printf(m, "%s %d: %pK size %zd:%zd:%zd %s\n",
-		   prefix, buffer->debug_id, buffer->user_data,
+		   prefix, buffer->debug_id, buffer->data,
 		   buffer->data_size, buffer->offsets_size,
 		   buffer->extra_buffers_size,
 		   buffer->transaction ? "active" : "delivered");
@@ -1021,7 +1018,7 @@ static inline bool check_buffer(struct binder_alloc *alloc,
  * @pgoffp: address to copy final page offset to
  *
  * Lookup the struct page corresponding to the address
- * at @buffer_offset into @buffer->user_data. If @pgoffp is not
+ * at @buffer_offset into @buffer->data. If @pgoffp is not
  * NULL, the byte-offset into the page is written there.
  *
  * The caller is responsible to ensure that the offset points
@@ -1038,7 +1035,7 @@ static struct page *binder_alloc_get_page(struct binder_alloc *alloc,
 					  pgoff_t *pgoffp)
 {
 	binder_size_t buffer_space_offset = buffer_offset +
-		(buffer->user_data - alloc->buffer);
+		(buffer->data - alloc->buffer);
 	pgoff_t pgoff = buffer_space_offset & ~PAGE_MASK;
 	size_t index = buffer_space_offset >> PAGE_SHIFT;
 	struct binder_lru_page *lru_page;
